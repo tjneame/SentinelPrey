@@ -9,9 +9,11 @@ library(tidyverse)
 library(gamlss)
 library(gratia)
 library(mgcv)
+library(googlesheets4)
 
 #load data
 sentPrey<-read.csv("sentinelPreyData.csv")
+read_sheet("https://docs.google.com/spreadsheets/d/1nPHKuQKl2J0DRYot5sx8afq6LNKcX68v7SOxvBCtRac/edit?usp=sharing")
 
 #center the lat/lon
 sentPrey<-sentPrey %>%
