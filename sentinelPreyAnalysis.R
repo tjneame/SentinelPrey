@@ -13,8 +13,8 @@ library(googlesheets4)
 
 #load data
 sentPrey<-read.csv("sentinelPreyData.csv")
-read_sheet("https://docs.google.com/spreadsheets/d/1nPHKuQKl2J0DRYot5sx8afq6LNKcX68v7SOxvBCtRac/edit?usp=sharing")
-
+sentPrey<-read_sheet("https://docs.google.com/spreadsheets/d/1nPHKuQKl2J0DRYot5sx8afq6LNKcX68v7SOxvBCtRac/edit?usp=sharing")
+write_csv(sentPrey, "sentinelPreyData.csv")
 #center the lat/lon
 sentPrey<-sentPrey %>%
   group_by(BLID) %>% mutate(cLon=mean(lon_dup),cLat=mean(lat_dup)) %>%
@@ -38,7 +38,7 @@ sentPrey <- sentPrey %>%
                           TRUE ~ dist))
 #remove columns that wont be needed at all
 sentPrey<-sentPrey %>%
-  dplyr::select(-X,
+  dplyr::select(-...1, #sometimes -X instead
                 -trapID,
                 -BTID,
                 -trapPassID,
