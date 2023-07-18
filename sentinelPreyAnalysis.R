@@ -45,9 +45,10 @@ sentPrey<-sentPrey %>%
                 -stnDate,
                 -midDate)
 
-#remove some rows that have data input issues
-sentPrey<-sentPrey %>% filter(type=="GD"|type=="RA") %>%
+#remove some rows of sentinel prey that were raised off the ground
+sentPrey<-sentPrey %>% filter(type=="GD") %>%
   droplevels()
+
 
 #make some new sub-sets of data ----------------------------------------------
 #only within crop data
@@ -94,7 +95,6 @@ formSP1 <- as.formula(chewingInsect ~ s(dist) + #Distance from edge
                         ti(dist,GDD) + #Distance:GDD interaction
                         year + #Year 
                         s(lon_dup,lat_dup,by=BLID) + #Within-field distances
-                        type+ #RA or GD
                         s(BLID,bs='re')) #Between-field
 
 sentPreyDistGAM1 <- gam(formula = formSP1,
@@ -102,13 +102,12 @@ sentPreyDistGAM1 <- gam(formula = formSP1,
                         data=sentPreyCrop)
 write_rds(sentPreyDistGAM1, "sentPreyDistGAM1.rds")
 
-#Smooth abundance (beetCount)
+#With abundance (beetCount)
 formSP2 <- as.formula(chewingInsect ~ s(dist) + #Distance from edge
                         s(GDD) + #Growing degree day
                         ti(dist,GDD) + #Distance:GDD interaction
                         year + #Year 
                         s(lon_dup,lat_dup,by=BLID) + #Within-field distances
-                        type+ #RA or GD
                         s(beetCount)+ #abundance
                         s(BLID,bs='re')) #Between-field
 
@@ -122,7 +121,6 @@ write_rds(sentPreyDistGAM2, "sentPreyDistGAM2.rds")
 #Base
 formSP3 <- as.formula(chewingInsect ~ site*GDD + #site:GDD interaction and main
                         year + #Year 
-                        type + #GD or RA
                         s(lon_dup,lat_dup,by=BLID) + #Within-field distances
                         s(BLID,bs='re')) #Between-field 
 
@@ -135,7 +133,6 @@ write_rds(sentPreyNCGAM1, "sentPreyNCGAM1.rds")
 formSP4 <- as.formula(chewingInsect ~ site*GDD + #Distance:GDD interaction and main
                         year + #Year 
                         s(lon_dup,lat_dup,by=BLID) + #Within-field distances
-                        type + #GD or RA
                         s(beetCount) + #abundance
                         s(BLID,bs='re')) #Between-field
 
@@ -148,7 +145,7 @@ write_rds(sentPreyNCGAM2, "sentPreyNCGAM2.rds")
 #visualize sentinelPrey by distance ------------------------------------------
 m1gam<-read_rds("sentPreyDistGAM2.rds")
 
-newdat <- expand.grid(dist=seq(0,200,by=5),GDD=c(300,500,700), type='RA',
+newdat <- expand.grid(dist=seq(0,200,by=5),GDD=c(300,500,700),
                       beetCount=0, year='2021',BLID='41007',lon_dup=0,lat_dup=0) 
 newdat <- predict.gam(m1gam,newdata=newdat,se.fit = TRUE,
                       exclude = c('s(BLID)',paste0('s(lon_dup,lat_dup):BLID',levels(sentPreyCrop$BLID)))) %>% 
@@ -163,7 +160,7 @@ cols <- c('blue','purple','red')
     ggplot(aes(x=dist))+geom_ribbon(aes(ymax=upr,ymin=lwr,fill=GDD),alpha=0.2)+
     geom_line(aes(y=fit,col=GDD))+
     geom_text(data=sentPreyCrop,aes(x=dist,y=0.05),label='|',position=position_jitter(width = 1, height=0),alpha=0.4,size=2)+
-    labs(x='Distance from field edge',y='Bite marks per caterpillar')+
+    labs(x='Distance from nearest non-crop vegetation area',y='Bite marks per caterpillar')+
     xlim(0,200)+
     scale_color_manual(values=cols)+scale_fill_manual(values=cols)+
     theme(legend.position = c(0.85,0.85),legend.background = element_rect(colour='grey'))
@@ -177,10 +174,10 @@ ggsave('./figures/biteMarks2.png',p,width = 6,height=6)
     geom_line(aes(x=dist,y=fit))+
     geom_text(data=dplyr::select(sentPreyCrop,dist),aes(x=dist,y=0.05),label='|',position=position_jitter(width = 1, height=0),alpha=0.4,size=2)+
     facet_wrap(~GDD)+
-    labs(x='Distance from field edge',y='Bite marks per caterpillar')+
+    labs(x='Distance from nearest non-crop vegetation area (m)',y='Bite marks per caterpillar')+
     xlim(0,200)+
     scale_color_manual(values=cols)+scale_fill_manual(values=cols)+
-    theme(legend.position = c(0.15,0.85),legend.background = element_rect(colour='grey'))
+    theme_bw()
 )
 
 ggsave('./figures/biteMarks1.png',p,width = 10,height=6)
@@ -188,7 +185,7 @@ ggsave('./figures/biteMarks3.svg',p,width = 10,height=6)
 
 # Visualize sentinelPrey by crop vs. non-crop
 m2gam<-read_rds("sentPreyNCGAM2.rds")
-newdat <- expand.grid(site=c('nonCrop', 'Crop'), GDD=c(300,500,700), type='RA',
+newdat <- expand.grid(site=c('nonCrop', 'Crop'), GDD=c(300,500,700),
                       beetCount=0, year='2021',BLID='41007',lon_dup=0,lat_dup=0) 
 newdat <- predict.gam(m2gam,newdata=newdat,se.fit = TRUE,
                       exclude = c('s(BLID)',paste0('s(lon_dup,lat_dup):BLID',levels(sentPreyNC$BLID)))) %>% 
@@ -203,7 +200,7 @@ cols <- c('blue','purple','red')
     ggplot(aes(x=site))+
     geom_errorbar(aes(ymax=upr,ymin=lwr,fill=GDD),alpha=0.2)+
     geom_point(aes(y=fit,col=GDD))+
-    labs(x='Crop vs Non Crop',y='Bite marks per caterpillar')+
+    labs(x='Non Crop vs Crop',y='Bite marks per caterpillar')+
     scale_color_manual(values=cols)+scale_fill_manual(values=cols)+
     theme(legend.position = c(0.85,0.85),legend.background = element_rect(colour='grey'))
 )
@@ -216,9 +213,9 @@ ggsave('./figures/biteMarks2.png',p,width = 6,height=6)
     geom_errorbar(aes(x=site,ymax=upr,ymin=lwr),alpha=0.9, width=0.1, position = position_dodge(0.9), linewidth=1)+
     geom_point(aes(x=site,y=fit), pch=19, size=4)+
     facet_wrap(~GDD)+
-    labs(x='Crop vs Non Crop',y='Bite marks per caterpillar')+
+    labs(x='Non-Crop vs Crop',y='Bite marks per caterpillar')+
     scale_color_manual(values=cols)+scale_fill_manual(values=cols)+
-    theme(legend.position = c(0.15,0.85),legend.background = element_rect(colour='grey'))
+    theme_bw()
 )
 
 ggsave('./figures/biteMarks2.png',p,width = 10,height=6)
