@@ -183,12 +183,12 @@ ggsave('./figures/biteMarks2.png',p,width = 6,height=6)
     theme(legend.position = c(0.15,0.85),legend.background = element_rect(colour='grey'))
 )
 
-ggsave('./figures/biteMarks3.png',p,width = 10,height=6)
+ggsave('./figures/biteMarks1.png',p,width = 10,height=6)
 ggsave('./figures/biteMarks3.svg',p,width = 10,height=6)
 
 # Visualize sentinelPrey by crop vs. non-crop
 m2gam<-read_rds("sentPreyNCGAM2.rds")
-newdat <- expand.grid(site=c('Crop', 'nonCrop'), GDD=c(300,500,700), type='RA',
+newdat <- expand.grid(site=c('nonCrop', 'Crop'), GDD=c(300,500,700), type='RA',
                       beetCount=0, year='2021',BLID='41007',lon_dup=0,lat_dup=0) 
 newdat <- predict.gam(m2gam,newdata=newdat,se.fit = TRUE,
                       exclude = c('s(BLID)',paste0('s(lon_dup,lat_dup):BLID',levels(sentPreyNC$BLID)))) %>% 
@@ -213,14 +213,14 @@ ggsave('./figures/biteMarks2.png',p,width = 6,height=6)
 
 (p <- newdat %>% mutate(GDD=factor(GDD,labels = c('Early (300)','Mid (500)','Late (700)'))) %>% 
     ggplot()+
-    geom_errorbar(aes(x=site,ymax=upr,ymin=lwr),alpha=0.2)+
-    geom_point(aes(x=site,y=fit))+
+    geom_errorbar(aes(x=site,ymax=upr,ymin=lwr),alpha=0.9, width=0.1, position = position_dodge(0.9), linewidth=1)+
+    geom_point(aes(x=site,y=fit), pch=19, size=4)+
     facet_wrap(~GDD)+
     labs(x='Crop vs Non Crop',y='Bite marks per caterpillar')+
     scale_color_manual(values=cols)+scale_fill_manual(values=cols)+
     theme(legend.position = c(0.15,0.85),legend.background = element_rect(colour='grey'))
 )
 
-ggsave('./figures/biteMarks3.png',p,width = 10,height=6)
+ggsave('./figures/biteMarks2.png',p,width = 10,height=6)
 ggsave('./figures/biteMarks3.svg',p,width = 10,height=6)
 
