@@ -183,7 +183,7 @@ ggsave('./figures/biteMarks2.png',p,width = 6,height=6)
 ggsave('./figures/biteMarks1.png',p,width = 10,height=6)
 ggsave('./figures/biteMarks3.svg',p,width = 10,height=6)
 
-# Visualize sentinelPrey by crop vs. non-crop
+# Visualize sentinelPrey by crop vs. non-crop ----------------------------------
 m2gam<-read_rds("sentPreyNCGAM2.rds")
 newdat <- expand.grid(site=c('nonCrop', 'Crop'), GDD=c(300,500,700),
                       beetCount=0, year='2021',BLID='41007',lon_dup=0,lat_dup=0) 
