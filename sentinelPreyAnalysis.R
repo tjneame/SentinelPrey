@@ -143,7 +143,7 @@ write_rds(sentPreyNCGAM2, "sentPreyNCGAM2.rds")
 
 
 #visualize sentinelPrey by distance ------------------------------------------
-m1gam<-read_rds("sentPreyDistGAM2.rds")
+m1gam<-read_rds("sentPreyDistGAM1.rds")
 
 newdat <- expand.grid(dist=seq(0,200,by=5),GDD=c(300,500,700),
                       beetCount=0, year='2021',BLID='41007',lon_dup=0,lat_dup=0) 
@@ -184,7 +184,7 @@ ggsave('./figures/biteMarks1.png',p,width = 10,height=6)
 ggsave('./figures/biteMarks3.svg',p,width = 10,height=6)
 
 # Visualize sentinelPrey by crop vs. non-crop ----------------------------------
-m2gam<-read_rds("sentPreyNCGAM2.rds")
+m2gam<-read_rds("sentPreyNCGAM1.rds")
 newdat <- expand.grid(site=c('nonCrop', 'Crop'), GDD=c(300,500,700),
                       beetCount=0, year='2021',BLID='41007',lon_dup=0,lat_dup=0) 
 newdat <- predict.gam(m2gam,newdata=newdat,se.fit = TRUE,
