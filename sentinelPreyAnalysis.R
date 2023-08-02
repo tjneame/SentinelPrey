@@ -103,12 +103,13 @@ sentPreyDistGAM1 <- gam(formula = formSP1,
 write_rds(sentPreyDistGAM1, "sentPreyDistGAM1.rds")
 
 #With abundance (beetCount)
-formSP2 <- as.formula(chewingInsect ~ s(dist) + #Distance from edge
-                        s(GDD) + #Growing degree day
-                        ti(dist,GDD) + #Distance:GDD interaction
+formSP2 <- as.formula(chewingInsect ~ s(dist, bs="ts") + #Distance from edge
+                        s(GDD, bs="ts") + #Growing degree day
+                        ti(dist,GDD, bs="ts") + #Distance:GDD interaction
                         year + #Year 
-                        s(lon_dup,lat_dup,by=BLID) + #Within-field distances
-                        s(beetCount)+ #abundance
+                        s(lon_dup,lat_dup,by=BLID, bs="ts") + #Within-field distances
+                        s(beetCount, bs="ts") + #abundance of beetles
+                        ti(beetCount, dist, bs="ts") + #Distance:abundance interaction
                         s(BLID,bs='re')) #Between-field
 
 sentPreyDistGAM2 <- gam(formula = formSP2,
@@ -130,10 +131,13 @@ sentPreyNCGAM1 <- gam(formula = formSP3,
 write_rds(sentPreyNCGAM1, "sentPreyNCGAM1.rds")
 
 #Smooth abundance (beetCount)
-formSP4 <- as.formula(chewingInsect ~ site*GDD + #Distance:GDD interaction and main
+formSP4 <- as.formula(chewingInsect ~ site + #crop or non-crop
+                        s(GDD, bs="ts") + #growing degree day
+                        s(GDD, by=site, bs="ts") + #crop non crop:GDD interaction
                         year + #Year 
-                        s(lon_dup,lat_dup,by=BLID) + #Within-field distances
-                        s(beetCount) + #abundance
+                        s(lon_dup,lat_dup,by=BLID, bs="ts") + #Within-field distances
+                        s(beetCount, bs="ts") + #abundance
+                        s(beetCount, by=site, bs="ts") + #crop non crop:abundance interaction
                         s(BLID,bs='re')) #Between-field
 
 sentPreyNCGAM2 <- gam(formula = formSP4,
