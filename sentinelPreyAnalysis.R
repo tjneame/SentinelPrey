@@ -147,10 +147,13 @@ write_rds(sentPreyNCGAM2, "sentPreyNCGAM2.rds")
 
 
 #visualize sentinelPrey by distance ------------------------------------------
-m1gam<-read_rds("sentPreyDistGAM1.rds")
+m1gam<-read_rds("sentPreyDistGAM2.rds")
+#test the model
+simulateResiduals(m1gam, plot=T)
 
+summary(m1gam)
 newdat <- expand.grid(dist=seq(0,200,by=5),GDD=c(300,500,700),
-                      beetCount=0, year='2021',BLID='41007',lon_dup=0,lat_dup=0) 
+                      beetCount=10, year='2021',BLID='41007',lon_dup=0,lat_dup=0) 
 newdat <- predict.gam(m1gam,newdata=newdat,se.fit = TRUE,
                       exclude = c('s(BLID)',paste0('s(lon_dup,lat_dup):BLID',levels(sentPreyCrop$BLID)))) %>% 
   do.call('data.frame',.) %>% 
@@ -187,10 +190,18 @@ ggsave('./figures/biteMarks2.png',p,width = 6,height=6)
 ggsave('./figures/biteMarks1.png',p,width = 10,height=6)
 ggsave('./figures/biteMarks3.svg',p,width = 10,height=6)
 
+#visualize the interaction effect of beetle abundance and dist on bite marks
+draw(smooth_estimates(m1gam, "ti(beetCount,dist)"))+
+  coord_flip()
+
 # Visualize sentinelPrey by crop vs. non-crop ----------------------------------
-m2gam<-read_rds("sentPreyNCGAM1.rds")
+m2gam<-read_rds("sentPreyNCGAM2.rds")
+summary(m2gam)
+#test the model
+simulateResiduals(m2gam, plot=T)
+
 newdat <- expand.grid(site=c('nonCrop', 'Crop'), GDD=c(300,500,700),
-                      beetCount=0, year='2021',BLID='41007',lon_dup=0,lat_dup=0) 
+                      beetCount=10, year='2021',BLID='41007',lon_dup=0,lat_dup=0) 
 newdat <- predict.gam(m2gam,newdata=newdat,se.fit = TRUE,
                       exclude = c('s(BLID)',paste0('s(lon_dup,lat_dup):BLID',levels(sentPreyNC$BLID)))) %>% 
   do.call('data.frame',.) %>% 
@@ -224,4 +235,3 @@ ggsave('./figures/biteMarks2.png',p,width = 6,height=6)
 
 ggsave('./figures/biteMarks2.png',p,width = 10,height=6)
 ggsave('./figures/biteMarks3.svg',p,width = 10,height=6)
-
