@@ -10,6 +10,7 @@ library(gamlss)
 library(gratia)
 library(mgcv)
 library(googlesheets4)
+library(DHARMa)
 
 #load data
 sentPrey<-read.csv("sentinelPreyData.csv")
@@ -115,7 +116,7 @@ formSP2 <- as.formula(chewingInsect ~ s(dist, bs="ts") + #Distance from edge
 sentPreyDistGAM2 <- gam(formula = formSP2,
                         family = nb,
                         data=sentPreyCrop)
-write_rds(sentPreyDistGAM2, "sentPreyDistGAM2.rds")
+write_rds(sentPreyDistGAM2, "sentPreyDistGAM_final.rds")
 
 #sentinelPrey by crop vs non-crop---------------------------------------------
 
@@ -143,11 +144,11 @@ formSP4 <- as.formula(chewingInsect ~ site + #crop or non-crop
 sentPreyNCGAM2 <- gam(formula = formSP4,
                       family = nb,
                       data=sentPreyNC)
-write_rds(sentPreyNCGAM2, "sentPreyNCGAM2.rds")
+write_rds(sentPreyNCGAM2, "sentPreyNCGAM_final.rds")
 
 
 #visualize sentinelPrey by distance ------------------------------------------
-m1gam<-read_rds("sentPreyDistGAM2.rds")
+m1gam<-read_rds("sentPreyDistGAM_final.rds")
 #test the model
 simulateResiduals(m1gam, plot=T)
 
@@ -181,7 +182,7 @@ ggsave('./figures/biteMarks2.png',p,width = 6,height=6)
     geom_line(aes(x=dist,y=fit))+
     geom_text(data=dplyr::select(sentPreyCrop,dist),aes(x=dist,y=0.05),label='|',position=position_jitter(width = 1, height=0),alpha=0.4,size=2)+
     facet_wrap(~GDD)+
-    labs(x='Distance from nearest non-crop vegetation area (m)',y='Bite marks per caterpillar')+
+    labs(x='Distance from nearest non-crop vegetation area (m)',y='Bite marks per sentinel')+
     xlim(0,200)+
     scale_color_manual(values=cols)+scale_fill_manual(values=cols)+
     theme_bw()
@@ -191,11 +192,17 @@ ggsave('./figures/biteMarks1.png',p,width = 10,height=6)
 ggsave('./figures/biteMarks3.svg',p,width = 10,height=6)
 
 #visualize the interaction effect of beetle abundance and dist on bite marks
-draw(smooth_estimates(m1gam, "ti(beetCount,dist)"))+
+p<-draw(smooth_estimates(m1gam, "ti(beetCount,dist)"))+
+  labs(y="Distance from nearest non-crop vegetation area (m)", 
+       x="Number of beetles",
+       title = "")+
+  ylim(0.4,200)+ #clean up the plot and only use reliable data
+  theme_minimal()+
   coord_flip()
+ggsave('./figures/biteMarksByAbund.png',p,width = 10,height=6)
 
 # Visualize sentinelPrey by crop vs. non-crop ----------------------------------
-m2gam<-read_rds("sentPreyNCGAM2.rds")
+m2gam<-read_rds("sentPreyNCGAM_final.rds")
 summary(m2gam)
 #test the model
 simulateResiduals(m2gam, plot=T)
@@ -228,7 +235,7 @@ ggsave('./figures/biteMarks2.png',p,width = 6,height=6)
     geom_errorbar(aes(x=site,ymax=upr,ymin=lwr),alpha=0.9, width=0.1, position = position_dodge(0.9), linewidth=1)+
     geom_point(aes(x=site,y=fit), pch=19, size=4)+
     facet_wrap(~GDD)+
-    labs(x='Non-Crop vs Crop',y='Bite marks per caterpillar')+
+    labs(x='Non-Crop vs Crop',y='Bite marks per sentinel')+
     scale_color_manual(values=cols)+scale_fill_manual(values=cols)+
     theme_bw()
 )
