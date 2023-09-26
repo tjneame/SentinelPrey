@@ -158,7 +158,7 @@ newdat <- expand.grid(dist=seq(0,200,by=5),GDD=c(300,500,700),
 newdat <- predict.gam(m1gam,newdata=newdat,se.fit = TRUE,
                       exclude = c('s(BLID)',paste0('s(lon_dup,lat_dup):BLID',levels(sentPreyCrop$BLID)))) %>% 
   do.call('data.frame',.) %>% 
-  mutate(upr=fit+se.fit*1.96,lwr=fit-se.fit*1.96) %>% 
+  mutate(upr=fit+se.fit,lwr=fit-se.fit) %>% 
   mutate(across(c(fit,upr,lwr),exp)) %>% 
   bind_cols(dplyr::select(newdat,dist,GDD),.)
 
@@ -187,8 +187,8 @@ ggsave('./figures/biteMarks2.png',p,width = 6,height=6)
     scale_color_manual(values=cols)+scale_fill_manual(values=cols)+
     theme_bw()
 )
-
-ggsave('./figures/biteMarks1.png',p,width = 10,height=6)
+p
+ggsave('./figures/biteMarks1.png',p,width = 10,height=6, scale=0.7)
 ggsave('./figures/biteMarks3.svg',p,width = 10,height=6)
 
 #visualize the interaction effect of beetle abundance and dist on bite marks
@@ -199,7 +199,8 @@ p<-draw(smooth_estimates(m1gam, "ti(beetCount,dist)"))+
   ylim(0.4,200)+ #clean up the plot and only use reliable data
   theme_minimal()+
   coord_flip()
-ggsave('./figures/biteMarksByAbund.png',p,width = 10,height=6)
+p
+ggsave('./figures/biteMarksByAbund.png',p,width = 10,height=6, scale=0.7)
 
 # Visualize sentinelPrey by crop vs. non-crop ----------------------------------
 m2gam<-read_rds("sentPreyNCGAM_final.rds")
@@ -212,7 +213,7 @@ newdat <- expand.grid(site=c('nonCrop', 'Crop'), GDD=c(300,500,700),
 newdat <- predict.gam(m2gam,newdata=newdat,se.fit = TRUE,
                       exclude = c('s(BLID)',paste0('s(lon_dup,lat_dup):BLID',levels(sentPreyNC$BLID)))) %>% 
   do.call('data.frame',.) %>% 
-  mutate(upr=fit+se.fit*1.96,lwr=fit-se.fit*1.96) %>% 
+  mutate(upr=fit+se.fit,lwr=fit-se.fit) %>% 
   mutate(across(c(fit,upr,lwr),exp)) %>% 
   bind_cols(dplyr::select(newdat,site,GDD),.)
 
@@ -235,10 +236,10 @@ ggsave('./figures/biteMarks2.png',p,width = 6,height=6)
     geom_errorbar(aes(x=site,ymax=upr,ymin=lwr),alpha=0.9, width=0.1, position = position_dodge(0.9), linewidth=1)+
     geom_point(aes(x=site,y=fit), pch=19, size=4)+
     facet_wrap(~GDD)+
-    labs(x='Non-Crop vs Crop',y='Bite marks per sentinel')+
+    labs(x='Location of Sampling',y='Bite marks per sentinel')+
     scale_color_manual(values=cols)+scale_fill_manual(values=cols)+
     theme_bw()
 )
 
-ggsave('./figures/biteMarks2.png',p,width = 10,height=6)
+ggsave('./figures/biteMarks2.png',p,width = 10,height=6, scale=0.7)
 ggsave('./figures/biteMarks3.svg',p,width = 10,height=6)
