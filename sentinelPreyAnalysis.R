@@ -158,7 +158,7 @@ newdat <- expand.grid(dist=seq(0,200,by=5),GDD=c(300,500,700),
 newdat <- predict.gam(m1gam,newdata=newdat,se.fit = TRUE,
                       exclude = c('s(BLID)',paste0('s(lon_dup,lat_dup):BLID',levels(sentPreyCrop$BLID)))) %>% 
   do.call('data.frame',.) %>% 
-  mutate(upr=fit+se.fit,lwr=fit-se.fit) %>% 
+  mutate(upr=fit+se.fit*1.96,lwr=fit-se.fit*1.96) %>% 
   mutate(across(c(fit,upr,lwr),exp)) %>% 
   bind_cols(dplyr::select(newdat,dist,GDD),.)
 
@@ -213,7 +213,7 @@ newdat <- expand.grid(site=c('nonCrop', 'Crop'), GDD=c(300,500,700),
 newdat <- predict.gam(m2gam,newdata=newdat,se.fit = TRUE,
                       exclude = c('s(BLID)',paste0('s(lon_dup,lat_dup):BLID',levels(sentPreyNC$BLID)))) %>% 
   do.call('data.frame',.) %>% 
-  mutate(upr=fit+se.fit,lwr=fit-se.fit) %>% 
+  mutate(upr=fit+se.fit*1.96,lwr=fit-se.fit*1.96) %>% 
   mutate(across(c(fit,upr,lwr),exp)) %>% 
   bind_cols(dplyr::select(newdat,site,GDD),.)
 
