@@ -243,3 +243,118 @@ ggsave('./figures/biteMarks2.png',p,width = 6,height=6)
 
 ggsave('./figures/biteMarks2.png',p,width = 10,height=6, scale=0.7)
 ggsave('./figures/biteMarks3.svg',p,width = 10,height=6)
+
+
+
+# New code (Oct 30) ----------------------------------------------------------------
+
+
+sentPreyAb2 <- sentPrey %>% 
+  # mutate(isNonCrop=grepl('N',as.character(site))) %>%
+  mutate(isNonCrop=factor(ifelse(grepl('N',site),'NonCrop','Crop'))) %>% 
+  mutate(cDist = ifelse(grepl('N',site),0,dist)) %>% 
+  na.omit()
+
+isComplete <- complete.cases(sentPreyAb2)
+
+mForm <- as.formula(chewingInsect ~ 
+                      #"Main effects"
+                      s(beetCount) + #Count of beetles
+                      s(cDist) + #Distance from edge
+                      isNonCrop + #Difference b/w crop and non crop (at dist=0)
+                      s(GDD,by=isNonCrop) + #median growing degree day 
+                      s(lon_dup,lat_dup,by=BLID) + #Within-field distances
+                      #"Interactions"
+                      ti(GDD,cDist) + #GDD:Distance
+                      ti(beetCount,cDist)+ #Count and distance
+                      s(BLID,bs='re')) #Between-field re
+
+library(parallel)
+cl <- makeCluster(5)
+gamSent <- bam(formula = mForm,family='nb',data=sentPreyAb2,cluster = cl,samfrac=0.1)
+stopCluster(cl)
+
+summary(gamSent)
+plot(gamSent)
+
+par(mfrow=c(2,2));gam.check(gamN);abline(0,1,col='red');par(mfrow=c(1,1))
+
+library(DHARMa)
+gamSent_simRes <- simulateResiduals(gamSent,n=1000)
+plot(gamSent_simRes)
+testZeroInflation(gamSent_simRes) 
+testOutliers(gamSent_simRes, type = "binomial")
+testCategorical(gamSent_simRes, sentPreyAb2$isNonCrop[isComplete])
+testCategorical(gamSent_simRes, sentPreyAb2$BLID[isComplete])
+
+#Check for site-to-site spatial AC
+reCoefs <- gamSent$coefficients[grepl('s(BLID).',names(gamSent$coefficients),fixed = TRUE)]
+
+sentPreyAb2 %>% dplyr::select(BLID,cLon,cLat) %>% distinct() %>% 
+  mutate(ranef=reCoefs) %>% 
+  ggplot(aes(x=cLon,y=cLat))+geom_point(aes(size=abs(ranef),col=ranef))+
+  scale_color_gradient2(low='red',high='blue')
+
+#Calculate Moran's I
+blid_weight <- sentPreyAb2 %>% dplyr::select(cLon,cLat) %>% distinct() %>% 
+  dist() %>% as.matrix() 
+blid_weight <- 1/blid_weight
+diag(blid_weight) <- 0
+ape::Moran.I(reCoefs,blid_weight) #No problem here (cite in paper)
+
+#Check for temporal AC
+sentPreyAb2 %>% na.omit() %>% mutate(res=residuals(gamSent,type='deviance')) %>% 
+  ggplot(aes(x=GDD,y=res))+geom_point()+
+  geom_smooth(method='loess',se=TRUE)
+
+sentPreyAb2 %>% na.omit() %>%  mutate(res=residuals(gamSent,type='deviance')) %>% 
+  ggplot(aes(x=GDD,y=res))+geom_point()+
+  geom_smooth(method='loess',se=TRUE)+
+  facet_wrap(~BLID)
+
+#Make some partial effects plots
+library(ggeffects)
+theme_set(theme_bw())
+
+ggpredict(gamSent,terms=c('cDist','isNonCrop')) %>% 
+  data.frame() %>% 
+  filter(x==0|group=='Crop')
+
+#Predictions for noncrop
+dontUse <- c('BLID','lon_dup','lat_dup')
+useGDD <- c(300,500,700)
+gddLabs <- c('Early (300)','Mid (500)','Late (700)')
+predDat1 <- data.frame(cDist=0,isNonCrop=sentPreyAb2$isNonCrop[1], #Noncrop
+                       GDD=useGDD,lon_dup=0,lat_dup=0,beetCount=14,
+                       BLID=sentPreyAb2$BLID[1]) %>% 
+  bind_cols(.,predict(gamSent,newdata=.,se.fit=TRUE,exclude=dontUse)) %>% 
+  mutate(upr=fit+se.fit*1.96,lwr=fit-se.fit*1.96) %>% 
+  mutate(across(c(fit,upr,lwr),~exp(.x)/2)) %>% 
+  mutate(cDist=-5) %>% mutate(GDD=factor(GDD,labels=gddLabs))
+
+predDat2 <- data.frame(cDist=0:200,isNonCrop=sentPreyAb2$isNonCrop[605], #Crop
+                       GDD=useGDD,lon_dup=0,lat_dup=0,beetCount=14,
+                       BLID=sentPreyAb2$BLID[1]) %>% 
+  bind_cols(.,predict(gamSent,newdata=.,se.fit=TRUE,exclude=dontUse)) %>% 
+  mutate(upr=fit+se.fit*1.96,lwr=fit-se.fit*1.96) %>% 
+  mutate(across(c(fit,upr,lwr),~exp(.x)/2)) %>% 
+  mutate(GDD=factor(GDD,labels=gddLabs))
+
+ggplot(data=predDat2,aes(x=cDist,y=fit))+
+  geom_ribbon(aes(ymax=upr,ymin=lwr),alpha=0.2)+
+  geom_line(linewidth=1)+
+  geom_pointrange(data=predDat1,aes(ymax=upr,ymin=lwr),size=1)+
+  facet_wrap(~GDD,ncol=3)+
+  labs(x='Distance',y='Bites per week')
+
+ggpredict(gamSent,terms=c('cDist[0:200]','beetCount[0,100]')) %>% 
+  data.frame() %>% mutate(group=factor(group,labels=c('Low (0)','High (50)'))) %>% 
+  ggplot(aes(x=x,y=predicted))+
+  geom_ribbon(aes(ymax=conf.high,ymin=conf.low,fill=group),alpha=0.2)+
+  geom_line(aes(col=group),linewidth=2)+
+  scale_colour_manual(values=c('red','blue'),aesthetics = c('colour','fill'))+
+  labs(x='Distance',y='Bites per week',colour='Beetles\nper\nweek',
+       fill='Beetles\nper\nweek')+
+  theme(legend.position = c(0.8,0.8),legend.background = element_rect(color='black'))
+
+save(list = c('sentPrey','gamSent'),file = './sentData_SR.Rdata')
